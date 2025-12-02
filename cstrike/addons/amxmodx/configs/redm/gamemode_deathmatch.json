@@ -159,6 +159,16 @@
         // Space between tickets for teams (when type = 2).
         "redm_tickets_hud_gap": "10",
 
+        // Determines if the scoreboard should be represented in a single team.
+        // This will also hide the team's name but only one color is possible. (meaning no spectators either)
+        // 0 disable
+        // 1 display red (T)
+        // 2 display blue (CT)"
+        "redm_single_scoreboard_team": "1",
+
+        // If enabled, the DM round will span the entire map instead of using mp_roundtime.
+        "redm_single_round": "1",
+
     // ReDM: Modes
         /* Game mode change mode.
             `0`, `disable` - disable modes

@@ -24,6 +24,8 @@ static bool: mp_respawn_immunity_effects
 static bool: redm_changeteam_unlimited
 static Float: redm_changeteam_freq
 static bool: redm_hide_hostages
+static redm_single_scoreboard_team
+static bool: redm_single_round
 
 Features_Precache() {
     AimBarriers_Precache()
@@ -34,6 +36,11 @@ Features_Precache() {
 Features_Init() {
     register_message(get_user_msgid("HudTextArgs"), "MsgHook_HudTextArgs")
     register_message(get_user_msgid("DeathMsg"), "MsgHook_DeathMsg")
+    register_message(get_user_msgid("TeamInfo"), "MsgHook_TeamInfo")
+    register_message(get_user_msgid("TeamScore"), "MsgHook_TeamScore")
+    register_message(get_user_msgid("RoundTime"), "MsgHook_RoundTime")
+
+    register_event("HLTV", "Event_RoundStart", "a", "1=0", "2=0");
 
     unregister_forward(FM_PrecacheEvent, g_fwdPrecacheEvent, .post = true)
     register_forward(FM_PlaybackEvent, "PlaybackEvent")
@@ -214,6 +221,32 @@ Features_Init() {
         ),
         redm_hide_hostages
     )
+    bind_pcvar_num(
+        create_cvar(
+            "redm_single_scoreboard_team",
+            "1",
+            .has_min = true, .min_val = 0.0,
+            .has_max = true, .max_val = 2.0,
+            .flags = _FCVAR_BOOLEAN,
+            .description = "Determines if the scoreboard should be represented in a single team. ^n\
+                This will also hide the team's name but only one color is possible. (meaning no spectators either)^n\
+                0 disable^n\
+                1 display red (T)^n\
+                2 display blue (CT)"
+        ),
+        redm_single_scoreboard_team
+    )
+    bind_pcvar_num(
+        create_cvar(
+            "redm_single_round",
+            "1",
+            .has_min = true, .min_val = 0.0,
+            .has_max = true, .max_val = 1.0,
+            .flags = _FCVAR_BOOLEAN,
+            .description = "If enabled, the DM round will span the entire map instead of using mp_roundtime."
+        ),
+        redm_single_round
+    )
 }
 
 public MsgHook_HudTextArgs() {
@@ -259,6 +292,38 @@ public MsgHook_DeathMsg(msgid, dest, receiver) {
     }
 
     return PLUGIN_HANDLED
+}
+
+public MsgHook_TeamInfo(msgid, dest, receiver) {
+    if(redm_single_scoreboard_team != 0) {
+        set_msg_arg_string(2, redm_single_scoreboard_team == 1 ? "TERRORIST" : "CT");
+    }
+
+    return PLUGIN_CONTINUE;
+}
+
+public MsgHook_TeamScore(msgid, dest, receiver) {
+    if(redm_single_scoreboard_team != 0) {
+        return PLUGIN_HANDLED;
+    }
+
+    return PLUGIN_CONTINUE;
+}
+
+public MsgHook_RoundTime(msgid, dest, receiver) {
+    if(redm_single_round) {
+        set_msg_arg_int(1, ARG_BYTE, get_timeleft())
+    }
+
+    return PLUGIN_CONTINUE;
+}
+
+public Event_RoundStart()
+{
+    //this efectively makes the round "infinite"
+    if(redm_single_round) {
+        set_member_game(m_flRestartRoundTime, get_gametime() + (get_timeleft() ? float(get_timeleft()) : 99999999999999.9));
+    }
 }
 
 /**
