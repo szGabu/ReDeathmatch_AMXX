@@ -110,6 +110,9 @@
         // Play a sound when an enemy is hit.
         "redm_hitsound": "0",
 
+        // Play a sound when an enemy is killed.
+        "redm_killsound": "1",
+
         // Enable hits only in HS.
         "mp_damage_headshot_only": "0",
 

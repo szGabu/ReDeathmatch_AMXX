@@ -15,6 +15,7 @@ static redm_fade
 static redm_fade_colors[32]
 static redm_refill_ammo
 static redm_hitsound
+static redm_killsound
 static mp_damage_headshot_only
 static bool: redm_hide_other_deathnotice
 static redm_protection_color_t[32]
@@ -129,6 +130,16 @@ Features_Init() {
             .description = "Play a sound when an enemy is hit."
         ),
         redm_hitsound
+    )
+    bind_pcvar_num(
+        create_cvar(
+            "redm_killsound", "0",
+            .has_min = true, .min_val = 0.0,
+            .has_max = true, .max_val = 1.0,
+            .flags = _FCVAR_BOOLEAN,
+            .description = "Play a sound when an enemy is killed."
+        ),
+        redm_killsound
     )
     bind_pcvar_num(
         create_cvar(
@@ -414,6 +425,15 @@ Features_PlayerKilled(const victim, const killer) {
 
     if (is_user_bot(killer))
         return
+
+    if (redm_killsound) {
+        UTIL_PlaySoundEffect(
+            killer,
+            "buttons/bell1.wav",
+            0.6,
+            get_member(victim, m_LastHitGroup) == HITGROUP_HEAD ? 240 : 200 
+        )
+    }
 
     if (redm_fade) {
         UTIL_ScreenFade(killer, .color = ParseColors4(redm_fade_colors), .fadeFlags = FFADE_IN)
