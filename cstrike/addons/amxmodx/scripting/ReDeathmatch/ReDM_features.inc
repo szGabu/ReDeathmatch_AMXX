@@ -41,6 +41,7 @@ Features_Init() {
     register_message(get_user_msgid("RoundTime"), "MsgHook_RoundTime")
 
     register_event("HLTV", "Event_RoundStart", "a", "1=0", "2=0");
+    register_event("SendAudio", "Event_RoundEnd", "a", "2=%!MRAD_terwin", "2=%!MRAD_ctwin", "2=%!MRAD_rounddraw");
 
     unregister_forward(FM_PrecacheEvent, g_fwdPrecacheEvent, .post = true)
     register_forward(FM_PlaybackEvent, "PlaybackEvent")
@@ -322,8 +323,17 @@ public Event_RoundStart()
 {
     //this efectively makes the round "infinite"
     if(redm_single_round) {
-        set_member_game(m_flRestartRoundTime, get_gametime() + (get_timeleft() ? float(get_timeleft()) : 99999999999999.9));
+        set_member_game(m_iRoundTime, get_timeleft());
     }
+}
+
+public Event_RoundEnd()
+{
+    if(redm_single_round) {
+        return PLUGIN_HANDLED;
+    }
+    
+    return PLUGIN_CONTINUE;
 }
 
 /**
