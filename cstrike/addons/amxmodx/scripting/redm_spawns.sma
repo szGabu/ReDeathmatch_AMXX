@@ -314,17 +314,33 @@ static Menu_Editor(const player/* , const level */) {
     if (!callback)
         callback = menu_makecallback("MenuCallback_Editor")
 
-    new focusEntity = g_editorProps[player][ep_focusEntity] 
+    new focusEntity = g_editorProps[player][ep_focusEntity]
 
     new spawnIndex = -1
     if (focusEntity != FM_NULLENT)
         spawnIndex = GetSpawnIndexByViewEntityIndex(focusEntity)
 
-    new buffer[192]
-    formatex(buffer, charsmax(buffer), "Spawns manager^n\d(press `E` for spawn focus)\y^n%s",
-        (focusEntity != FM_NULLENT) ? fmt("\wSpawn index: #%i\y", spawnIndex) : ""
+    new title[192]
+    new spawnInfo[64]
+
+    if (focusEntity != FM_NULLENT)
+    {
+        formatex(spawnInfo, charsmax(spawnInfo),
+            "\wSpawn index: #%d\y",
+            spawnIndex
+        )
+    }
+    else
+    {
+        spawnInfo[0] = EOS
+    }
+
+    formatex(title, charsmax(title),
+        "Spawns manager^n\d(press `E` for spawn focus)\y^n%s",
+        spawnInfo
     )
-    new menu = menu_create(buffer, "MenuHandler_Editor")
+
+    new menu = menu_create(title, "MenuHandler_Editor")
 
     menu_additem(
         menu,
@@ -333,25 +349,48 @@ static Menu_Editor(const player/* , const level */) {
     )
 
     new team = g_editorProps[player][ep_team]
-    menu_additem(menu, fmt("Team: %s", g_teamName[team]))
+    new teamText[64]
+
+    formatex(teamText, charsmax(teamText),
+        "Team: %s",
+        g_teamName[team]
+    )
+    menu_additem(menu, teamText)
+
     menu_additem(menu, "Teleport", .callback = callback)
     menu_additem(menu, "Delete", .callback = callback)
-    new gravityPreset = g_editorProps[player][ep_gravityPreset]
-    menu_additem(menu, fmt("Gravity: %.2f", g_gravityValues[gravityPreset]), .callback = callback)
-    menu_additem(menu, fmt("Group: %s", g_editorProps[player][ep_group]), .callback = callback)
 
-    new stats[_: TeamName - 1]
+    new gravityPreset = g_editorProps[player][ep_gravityPreset]
+    new gravityText[64]
+
+    formatex(gravityText, charsmax(gravityText),
+        "Gravity: %.2f",
+        g_gravityValues[gravityPreset]
+    )
+    menu_additem(menu, gravityText, .callback = callback)
+
+    new groupText[64]
+    formatex(groupText, charsmax(groupText),
+        "Group: %s",
+        g_editorProps[player][ep_group]
+    )
+    menu_additem(menu, groupText, .callback = callback)
+
+    new stats[_:TeamName - 1]
     new total = Editor_GetStats(stats)
 
-    menu_addtext(menu,
-        fmt("^nTotal:%i (ANY:%i, T:%i, CT:%i)",
-            total, stats[0], stats[1], stats[2]
-        ),
-        .slot = false
+    new statsText[96];
+    formatex(statsText, charsmax(statsText),
+        "^nTotal:%d (ANY:%d, T:%d, CT:%d)",
+        total,
+        stats[0],
+        stats[1],
+        stats[2]
     )
 
-    menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER)
+    menu_addtext(menu, statsText, .slot = false)
 
+    menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER)
     menu_display(player, menu)
 }
 
