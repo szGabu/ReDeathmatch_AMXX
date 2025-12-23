@@ -39,9 +39,9 @@ Features_Init() {
     register_message(get_user_msgid("TeamInfo"), "MsgHook_TeamInfo")
     register_message(get_user_msgid("TeamScore"), "MsgHook_TeamScore")
     register_message(get_user_msgid("RoundTime"), "MsgHook_RoundTime")
-
-    register_event("HLTV", "Event_RoundStart", "a", "1=0", "2=0");
-    register_event("SendAudio", "Event_RoundEnd", "a", "2=%!MRAD_terwin", "2=%!MRAD_ctwin", "2=%!MRAD_rounddraw");
+    register_message(get_user_msgid("TextMsg"), "MsgHook_TextMsg")
+    register_message(get_user_msgid("SendAudio"), "MsgHook_SendAudio")
+    set_task_ex(1.0, "Task_ReDM_Clock", _, _, _, SetTask_Repeat)
 
     unregister_forward(FM_PrecacheEvent, g_fwdPrecacheEvent, .post = true)
     register_forward(FM_PlaybackEvent, "PlaybackEvent")
@@ -250,6 +250,16 @@ Features_Init() {
     )
 }
 
+public Task_ReDM_Clock() {
+    if (redm_single_round) {
+        //this efectively makes the round "infinite"
+        //a proper way would be constantly move the round time and round start times 
+        //but I'm too lazy to find the proper values
+        //this is the best next thing, players won't notice the difference
+        set_member_game(m_flRestartRoundTime, get_gametime() + 9999999.0);
+    }
+}
+
 public MsgHook_HudTextArgs() {
     return IsActive() ? PLUGIN_HANDLED : PLUGIN_CONTINUE
 }
@@ -305,6 +315,10 @@ public MsgHook_TeamInfo(msgid, dest, receiver) {
 
 public MsgHook_TeamScore(msgid, dest, receiver) {
     if(redm_single_scoreboard_team != 0) {
+        // this is the same behavior of the game we get if we start Counter-Strike 
+        // in a single player mode (the long gone training room from WON)
+        // in single player games the TeamScore message never is sent to the client
+        // resulting in an undocumented teamless scoreboard
         return PLUGIN_HANDLED;
     }
 
@@ -313,26 +327,38 @@ public MsgHook_TeamScore(msgid, dest, receiver) {
 
 public MsgHook_RoundTime(msgid, dest, receiver) {
     if(redm_single_round) {
+        //shows timeleft instead
         set_msg_arg_int(1, ARG_BYTE, get_timeleft())
     }
 
     return PLUGIN_CONTINUE;
 }
 
-public Event_RoundStart()
-{
-    //this efectively makes the round "infinite"
+public MsgHook_TextMsg(msgid, dest, receiver) {
     if(redm_single_round) {
-        set_member_game(m_iRoundTime, get_timeleft());
+        static szMessage[3];
+        get_msg_arg_string(2, szMessage, charsmax(szMessage));
+
+        switch(szMessage[1]) {
+            // -- #CTs_Win ; #CTs_PreventEscape; #Terrorists_Win ; #Target_Bombed ; #Round_Draw ; 
+            // #Bomb_Defused ; #Escaping_Terrorists_Neutralized, #VIP_Assassinated ; #VIP_Not_Escaped ; 
+            // # VIP_Escaped ; #Hostages_Not_Rescued ; #All_Hostages_Rescued
+            case 'C', 'T', 'R', 'B', 'E', 'V', 'H', 'A': return PLUGIN_HANDLED;
+        }
     }
+
+    return PLUGIN_CONTINUE;
 }
 
-public Event_RoundEnd()
-{
+public MsgHook_SendAudio(msgid, dest, receiver) {
     if(redm_single_round) {
-        return PLUGIN_HANDLED;
+        static szMsg[22]; 
+        get_msg_arg_string(2, szMsg, charsmax(szMsg));
+        // to do: should we block ReGameDLL's bomb has been defused cue?
+        if(equal(szMsg, "%!MRAD_terwin") || equal(szMsg, "%!MRAD_ctwin") || equal(szMsg, "%!MRAD_rounddraw"))
+            return PLUGIN_HANDLED;
     }
-    
+
     return PLUGIN_CONTINUE;
 }
 
